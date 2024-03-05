@@ -1,0 +1,73 @@
+# TITLE:            name of the script
+# PROJECT:          name of project that this script is part of
+# AUTHORS:          list anyone contributing to the file
+# COLLABORATORS:    other people involved in the wider project but not necessarily on the script
+# DATA INPUT:       a brief description of the data read in through the script, including what format it’s in
+# DATA OUTPUT:      a brief description of the data output from through the script, including what format it’s in
+# DATE:             initiation date of script, plus any major update dates
+# OVERVIEW:         Brief description of what this script does
+# REQUIRES:         any scripts or code sources that are required
+# NOTES:            any additional information that is necessary / helpful to describe what needs to be done next
+
+# Load libraries 
+library(geodiv)
+library(tidyverse)
+library(terra)
+
+
+data(orforest)
+orf <- terra::unwrap(orforest) 
+orf <- terra::crop(orf, terra::ext(orf[1:20, 1:20, drop=FALSE]))
+
+# Define a list of input variables as strings
+metrics <- list("sa", "sq", "s10z", "sdq", "sdq6", "sdr", "sbi", "sci", "ssk", 
+             "sku", "sds", "sfd", "srw", "std", "svi", "stxr", "ssc", "sv", 
+             "sph", "sk", "smean", "svk", "spk", "scl", "sdc")
+
+matrix_sizes <- list(matrix(1, nrow = 3, ncol = 3),
+                     matrix(1, nrow = 5, ncol = 5), 
+                     matrix(1, nrow = 7, ncol = 7))
+
+raster_sizes <- list(terra::crop(orf, terra::ext(orf[1:20, 1:20, drop=FALSE])),
+                     terra::crop(orf, terra::ext(orf[1:10, 1:10, drop=FALSE])))
+
+# Initialize an empty data frame to store the results
+result_df <- data.frame(metric = character(), matrix_size = character(), raster_size = character(), time_taken = numeric())
+
+# Iterate over the metrics, matrix sizes, and raster sizes, and measure the time taken for each execution
+for (metric in metrics) {
+  for (matrix_size in matrix_sizes) {
+    for (raster_size in raster_sizes) {
+      print(paste("Metric:", metric, ", Matrix Size:", paste(nrow(matrix_size), ncol(matrix_size), sep = "x"), 
+                  ", Raster Size:", paste(terra::nrow(raster_size), terra::ncol(raster_size), sep = "x")))
+      time_taken <- tryCatch({
+        system.time({
+          result <- geodiv::focal_metrics(raster_size, window = matrix_size, metrics = metric, progress = FALSE)
+        })[3] # extracting the elapsed time
+      }, error = function(e) {
+        print(paste("Error:", e$message))
+        NA
+      })
+      
+      # Add the metric, matrix size, raster size, and the time taken to the data frame
+      result_df <- rbind(result_df, 
+                         data.frame(metric = metric,
+                                    matrix_size = paste(nrow(matrix_size), ncol(matrix_size), sep = "x"),
+                                    raster_size = terra::ncell(raster_size)), 
+                                    time_taken = ifelse(is.na(time_taken), NA, time_taken))
+    }
+  }
+}
+
+# Create the ggplot bar graph
+ggplot(result_df, aes(x = metric, y = time_taken, fill = raster_size)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(data = subset(result_df, is.na(time_taken)), aes(label = "ERROR"), vjust = -0.5, color = "red") +
+  labs(title = "Time Taken for Focal Metrics Calculation",
+       x = "Metric",
+       y = "Time Taken (seconds)",
+       fill = "Raster Size") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis text at 45 degrees
+
+# ggsave(paste0(getwd(), "/figures/Runtimes_20x20.png"), p)
