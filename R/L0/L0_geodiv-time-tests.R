@@ -1,20 +1,20 @@
-# TITLE:            name of the script
-# PROJECT:          name of project that this script is part of
-# AUTHORS:          list anyone contributing to the file
-# COLLABORATORS:    other people involved in the wider project but not necessarily on the script
-# DATA INPUT:       a brief description of the data read in through the script, including what format it’s in
-# DATA OUTPUT:      a brief description of the data output from through the script, including what format it’s in
-# DATE:             initiation date of script, plus any major update dates
-# OVERVIEW:         Brief description of what this script does
-# REQUIRES:         any scripts or code sources that are required
-# NOTES:            any additional information that is necessary / helpful to describe what needs to be done next
+# TITLE:            Time testing for geodiv metrics 
+# PROJECT:          NEON Geodiversity Analysis
+# AUTHORS:          Kelly Kapsar, Pat Bills, Phoebe Zarnetske 
+# COLLABORATORS:    Lala Kounta
+# DATA INPUT:       NA (using dummy data from geodiv package)
+# DATA OUTPUT:      Benchmarking plots for metric calculation speeds. 
+# DATE:             April 2024
+# OVERVIEW:         This script contains benchmarking code to evaluate the time needed to calculate geodiversity metrics in both spatial (raster) and aspatial output formats. 
+# REQUIRES:         
+# NOTES:             
 
 # Load libraries 
 library(geodiv)
 library(tidyverse)
 library(terra)
 
-
+# Laod data 
 data(orforest)
 orf <- terra::unwrap(orforest) 
 orf <- terra::crop(orf, terra::ext(orf[1:100, 1:100, drop=FALSE]))
@@ -32,7 +32,12 @@ raster_sizes <- list(terra::crop(orf, terra::ext(orf[1:20, 1:20, drop=FALSE])),
                      terra::crop(orf, terra::ext(orf[1:10, 1:10, drop=FALSE])))
 
 # Initialize an empty data frame to store the results
-result_df <- data.frame(metric = character(), matrix_size = character(), raster_size = character(), time_taken = numeric())
+result_df <- data.frame(
+  metric = character(), 
+  matrix_size = character(), 
+  raster_size = character(), 
+  time_taken = numeric()
+  )
 
 # Iterate over the metrics, matrix sizes, and raster sizes, and measure the time taken for each execution
 for (metric in metrics) {
