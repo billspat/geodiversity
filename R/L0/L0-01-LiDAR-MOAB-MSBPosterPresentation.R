@@ -1,13 +1,13 @@
-# TITLE:            name of the script
-# PROJECT:          name of project that this script is part of
-# AUTHORS:          list anyone contributing to the file
-# COLLABORATORS:    other people involved in the wider project but not necessarily on the script
-# DATA INPUT:       a brief description of the data read in through the script, including what format it’s in
-# DATA OUTPUT:      a brief description of the data output from through the script, including what format it’s in
-# DATE:             initiation date of script, plus any major update dates
-# OVERVIEW:         Brief description of what this script does
-# REQUIRES:         any scripts or code sources that are required
-# NOTES:            any additional information that is necessary / helpful to describe what needs to be done next
+# TITLE:            LiDAR data visualization for MSB Poster Presentation
+# PROJECT:          NEON Geodiversity Analysis
+# AUTHORS:          Kelly Kapsar, Pat Bills, Phoebe Zarnetske 
+# COLLABORATORS:    Lala Kounta
+# DATA INPUT:       NEON LiDAR data (manually downloaded one image for MOAB)
+# DATA OUTPUT:      Maps of sa and sfd 
+# DATE:             February 2024
+# OVERVIEW:         This script contains code to calculate and visualize sa and sfd metrics for a subset of the MOAB NEON site. 
+# REQUIRES:         
+# NOTES:             
 
 # Load libraries 
 library(geodiv)
