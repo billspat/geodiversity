@@ -11,12 +11,8 @@
 
 # Load libraries 
 library(geodiv)
-# library(raster)
-# library(rasterVis)
 library(terra)
 library(mapdata)
-# library(maptools)
-# library(rgeos)
 library(tidyverse)
 library(parallel)
 library(sf)
