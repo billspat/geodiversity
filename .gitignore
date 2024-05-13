@@ -53,3 +53,6 @@ data/
 
 # Figures folder
 figures/
+
+# API token file 
+./R/config.R
