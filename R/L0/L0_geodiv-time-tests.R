@@ -17,7 +17,7 @@ library(terra)
 
 data(orforest)
 orf <- terra::unwrap(orforest) 
-orf <- terra::crop(orf, terra::ext(orf[1:20, 1:20, drop=FALSE]))
+orf <- terra::crop(orf, terra::ext(orf[1:100, 1:100, drop=FALSE]))
 
 # Define a list of input variables as strings
 metrics <- list("sa", "sq", "s10z", "sdq", "sdq6", "sdr", "sbi", "sci", "ssk", 
@@ -71,3 +71,30 @@ ggplot(result_df, aes(x = metric, y = time_taken, fill = raster_size)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis text at 45 degrees
 
 # ggsave(paste0(getwd(), "/figures/Runtimes_20x20.png"), p)
+
+############################################################################
+
+
+# Define function to calculate time taken for a function
+time_function <- function(raster_layer, function_name) {
+  start_time <- Sys.time()
+  result <- eval(parse(text = paste0(function_name, "(raster_layer)")))
+  end_time <- Sys.time()
+  return(list(runtime = end_time - start_time, result = result))
+}
+
+# Use sapply to apply time_function to each metric
+results <- sapply(metrics[-length(metrics)], FUN = function(name) {
+  result <- time_function(orf, name)
+  dimensions <- paste(dim(orf), collapse = "x")
+  return(c(Metric = name, Raster_Dimensions = dimensions, Time_Taken = result$runtime, Result = result$result))
+}, simplify = "data.frame")
+
+# Transpose the results and convert to data frame
+results_df <- as.data.frame(t(results), stringsAsFactors = FALSE)
+
+# Set column names
+colnames(results_df) <- c("Metric", "Raster_Dimensions", "Time_Taken", "Result")
+
+# Print results
+print(results_df)
