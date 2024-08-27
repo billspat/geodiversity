@@ -54,5 +54,10 @@ data/
 # Figures folder
 figures/
 
+# Database file 
+*.duckdb
+
 # API token file 
-./R/config.R
+R/config.R
+
+
