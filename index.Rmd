@@ -1,0 +1,146 @@
+---
+title: "MSB Climate and Geodiversity Layer\nScales of Analysis"
+author: "Kelly Kapsar"
+date: "2024-09-03"
+output: html_document
+---
+
+```{r data processing, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Load packages
+library(tidyverse)
+library(sf)
+library(leaflet)
+
+# Import NEON data 
+dom <- st_read("./data/L0/NEON_domains/NEON_Domains.shp", quiet=T)
+site <- st_read("./data/L0/NEON_sites/terrestrialSamplingBoundaries.shp", quiet=T)
+plt <- st_read("./data/L0/NEON_TOS_Plot_Points/NEON_TOS_Plot_Points.shp", quiet=T)
+
+################################################################################
+##### SITE SCALE 
+
+# start <- proc.time()
+test <- site %>% 
+  st_cast("POINT") %>% 
+  nest(.by = siteName) %>% 
+  mutate(max_dist = lapply(data, function(x) max(st_distance(st_centroid(x$geometry)))), 
+         centroid = lapply(data, function(x) st_centroid(st_union(x$geometry)))) %>% 
+  unnest(cols = c(max_dist, centroid)) %>% 
+  mutate(buff_dist = max(max_dist)) %>% 
+  mutate(site_poly = st_buffer(centroid, dist = buff_dist))
+# proc.time()-start
+
+site_centroids <- test %>% 
+  dplyr::select(siteName, centroid) %>% 
+  rename(geometry = centroid) %>% 
+  st_as_sf()
+
+site_radii <- test %>% 
+  dplyr::select(siteName, site_poly) %>% 
+  rename(geometry = site_poly) %>% 
+  st_as_sf()
+
+# plot(st_buffer(st_centroid(s$geometry), max_dist), cex=3, col=NA) # Why is this all squiggly? 
+# plot(st_geometry(s), add=T)
+# plot(st_centroid(s), add=T)
+# plot(st_cast(s, "POINT")[which.max(dist),], cex=3, add=T, col="red")
+# plot(p$geometry, add=T, col="green", pch=16)
+
+################################################################################
+##### DOMAIN SCALE 
+
+# Domain Level 
+test2 <- site %>% 
+  st_make_valid() %>% 
+  nest(.by = domainName) %>% 
+  mutate(max_dist = lapply(data, function(x) max(st_distance(st_centroid(x$geometry)))), 
+         centroid = lapply(data, function(x) st_centroid(st_union(x$geometry)))) %>% 
+  unnest(cols = c(max_dist, centroid)) %>% 
+  mutate(buff_dist = max(max_dist)) %>% 
+  mutate(dom_poly = st_buffer(centroid, dist = buff_dist))
+
+dom_centroids <- test2 %>% 
+  dplyr::select(domainName, centroid) %>% 
+  rename(geometry = centroid) %>% 
+  st_as_sf()
+
+dom_radii <- test2 %>% 
+  dplyr::select(domainName, dom_poly) %>% 
+  rename(geometry = dom_poly) %>% 
+  st_as_sf()
+
+```
+
+```{r map, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
+
+# Create the leaflet map
+leaflet() %>%
+  # Set the view to focus on the continental US
+  setView(lng = -96, lat = 37.8, zoom = 4) %>%
+  
+  # Add base tiles
+  addTiles() %>%
+  
+  # Add the polygon layer with a toggle option and labels
+  addPolygons(data = site, 
+              color = "green", 
+              fillOpacity = 0.5, 
+              group = "Site",
+              label = ~siteID,          # Add label for polygons
+              labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
+              popup = ~siteID) %>%
+    
+  # Add the points layer with a toggle option and labels
+  addCircleMarkers(data = site_centroids, 
+                   color = "darkgreen", 
+                   radius = 5, 
+                   group = "Site - Centroids",
+                   label = ~siteName,        # Add label for points
+                   labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
+                   popup = ~siteName) %>%
+  
+  # Add the polygon layer with a toggle option and labels
+  addPolygons(data = site_radii, 
+              color = "lightgreen", 
+              fillOpacity = 0.5, 
+              group = "Site - Radii",
+              label = ~siteName,          # Add label for polygons
+              labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
+              popup = ~siteName) %>%
+
+  # Add the polygon layer with a toggle option and labels
+  addPolygons(data = dom, 
+              color = "lightblue", 
+              fillOpacity = 0.5, 
+              group = "Domain",
+              label = ~DomainName,          # Add label for polygons
+              labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
+              popup = ~DomainName) %>%
+  
+  # Add the points layer with a toggle option and labels
+  addCircleMarkers(data = dom_centroids, 
+                   color = "darkblue", 
+                   radius = 5, 
+                   group = "Domain - Centroids",
+                   label = ~domainName,        # Add label for points
+                   labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
+                   popup = ~domainName) %>%
+  
+  # Add the polygon layer with a toggle option and labels
+  addPolygons(data = dom_radii, 
+              color = "blue", 
+              fillOpacity = 0.5, 
+              group = "Domain - Radii",
+              label = ~domainName,          # Add label for polygons
+              labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
+              popup = ~domainName) %>%
+
+  # Add layer control to toggle the points and polygons
+  addLayersControl(
+    overlayGroups = c("Domain", "Domain - Centroids","Domain - Radii", 
+                      "Site", "Site - Centroids", "Site - Radii"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+
+```
