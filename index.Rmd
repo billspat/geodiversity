@@ -26,23 +26,41 @@ max_dist_to_centroid <- function(d){
   return(as.numeric(max(dist)))
 }
 
+id_circle_center <- function(d){
+  du <- st_union(d)
+  b <- lwgeom::st_minimum_bounding_circle(du)
+  c <- st_centroid(b)
+  return(c)
+}
+
+max_dist_to_circle_center <- function(d){
+  du <- st_union(d)
+  b <- lwgeom::st_minimum_bounding_circle(du)
+  c <- st_centroid(b)
+  dp <- d %>% st_cast("POINT")
+  dist <- st_distance(dp, c)
+  return(as.numeric(max(dist)))
+}
+
 ################################################################################
-##### SITE SCALE 
+##### SITE SCALE ##### 
 
 # start <- proc.time()
 test <- site %>% 
   st_make_valid() %>% 
   nest(.by = siteID) %>% 
   mutate(centroid = lapply(data, function(x) st_centroid(st_union(x)) %>% st_set_crs(4326)), 
-         max_dist = lapply(data, function(x) max_dist_to_centroid(x))) %>% 
-  unnest(cols = c(max_dist, centroid)) %>% 
-  mutate(buff_dist = max(max_dist)) %>% 
-  mutate(site_poly = st_buffer(centroid, dist = buff_dist))
+         max_dist_cent = lapply(data, function(x) max_dist_to_centroid(x)), 
+         circle_center = lapply(data, function(x) id_circle_center(x)), 
+         max_dist_circ = lapply(data, function(x) max_dist_to_circle_center(x))) %>% 
+  unnest(cols = c(max_dist_cent, centroid, max_dist_circ, circle_center)) %>% 
+  mutate(buff_dist = max(max_dist_circ)) %>% 
+  mutate(site_poly = st_buffer(circle_center, dist = buff_dist))
 # proc.time()-start
 
-site_centroids <- test %>% 
-  dplyr::select(siteID, centroid) %>% 
-  rename(geometry = centroid) %>% 
+site_circle_center <- test %>% 
+  dplyr::select(siteID, circle_center) %>% 
+  rename(geometry = circle_center) %>% 
   st_as_sf()
 
 site_radii <- test %>% 
@@ -50,28 +68,30 @@ site_radii <- test %>%
   rename(geometry = site_poly) %>% 
   st_as_sf()
 
-# plot(st_buffer(st_centroid(s$geometry), max_dist), cex=3, col=NA) # Why is this all squiggly? 
+# plot(st_buffer(st_centroid(s$geometry), max_dist_cent), cex=3, col=NA) # Why is this all squiggly? 
 # plot(st_geometry(s), add=T)
 # plot(st_centroid(s), add=T)
 # plot(st_cast(s, "POINT")[which.max(dist),], cex=3, add=T, col="red")
 # plot(p$geometry, add=T, col="green", pch=16)
 
 ################################################################################
-##### DOMAIN SCALE 
+##### DOMAIN SCALE ##### 
 
 # Domain Level 
 test2 <- site %>% 
   st_make_valid() %>% 
   nest(.by = domainName) %>% 
   mutate(centroid = lapply(data, function(x) st_centroid(st_union(x)) %>% st_set_crs(4326)), 
-         max_dist = lapply(data, function(x) max_dist_to_centroid(x))) %>% 
-  unnest(cols = c(max_dist, centroid)) %>% 
-  mutate(buff_dist = max(max_dist)) %>% 
-  mutate(dom_poly = st_buffer(centroid, dist = buff_dist))
+         max_dist_cent = lapply(data, function(x) max_dist_to_centroid(x)), 
+         circle_center = lapply(data, function(x) id_circle_center(x)), 
+         max_dist_circ = lapply(data, function(x) max_dist_to_circle_center(x))) %>% 
+  unnest(cols = c(max_dist_cent, centroid, max_dist_circ, circle_center)) %>% 
+  mutate(buff_dist = max(max_dist_circ)) %>% 
+  mutate(dom_poly = st_buffer(circle_center, dist = buff_dist))
 
-dom_centroids <- test2 %>% 
-  dplyr::select(domainName, centroid) %>% 
-  rename(geometry = centroid) %>% 
+dom_circle_center <- test2 %>% 
+  dplyr::select(domainName, circle_center) %>% 
+  rename(geometry = circle_center) %>% 
   st_as_sf()
 
 dom_radii <- test2 %>% 
@@ -101,10 +121,10 @@ leaflet() %>%
               popup = ~siteID) %>%
     
   # Add the points layer with a toggle option and labels
-  addCircleMarkers(data = site_centroids, 
+  addCircleMarkers(data = site_circle_center, 
                    color = "darkgreen", 
                    radius = 5, 
-                   group = "Site - Centroids",
+                   group = "Site - Center",
                    label = ~siteID,        # Add label for points
                    labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
                    popup = ~siteID) %>%
@@ -128,10 +148,10 @@ leaflet() %>%
               popup = ~DomainName) %>%
   
   # Add the points layer with a toggle option and labels
-  addCircleMarkers(data = dom_centroids, 
+  addCircleMarkers(data = dom_circle_center, 
                    color = "darkblue", 
                    radius = 5, 
-                   group = "Domain - Centroids",
+                   group = "Domain - Center",
                    label = ~domainName,        # Add label for points
                    labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
                    popup = ~domainName) %>%
@@ -147,8 +167,8 @@ leaflet() %>%
 
   # Add layer control to toggle the points and polygons
   addLayersControl(
-    overlayGroups = c("Domain", "Domain - Centroids","Domain - Radii", 
-                      "Site", "Site - Centroids", "Site - Radii"),
+    overlayGroups = c("Domain", "Domain - Center","Domain - Radii", 
+                      "Site", "Site - Center", "Site - Radii"),
     options = layersControlOptions(collapsed = FALSE)
   )
 
