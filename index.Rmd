@@ -17,27 +17,36 @@ dom <- st_read("./data/L0/NEON_domains/NEON_Domains.shp", quiet=T)
 site <- st_read("./data/L0/NEON_sites/terrestrialSamplingBoundaries.shp", quiet=T)
 plt <- st_read("./data/L0/NEON_TOS_Plot_Points/NEON_TOS_Plot_Points.shp", quiet=T)
 
+# Define functions 
+max_dist_to_centroid <- function(d){
+  du <- st_union(d)
+  c <- st_centroid(du)
+  dp <- du %>% st_cast("POINT")
+  dist <- st_distance(dp, c)
+  return(as.numeric(max(dist)))
+}
+
 ################################################################################
 ##### SITE SCALE 
 
 # start <- proc.time()
 test <- site %>% 
-  st_cast("POINT") %>% 
-  nest(.by = siteName) %>% 
-  mutate(max_dist = lapply(data, function(x) max(st_distance(st_centroid(x$geometry)))), 
-         centroid = lapply(data, function(x) st_centroid(st_union(x$geometry)))) %>% 
+  st_make_valid() %>% 
+  nest(.by = siteID) %>% 
+  mutate(centroid = lapply(data, function(x) st_centroid(st_union(x)) %>% st_set_crs(4326)), 
+         max_dist = lapply(data, function(x) max_dist_to_centroid(x))) %>% 
   unnest(cols = c(max_dist, centroid)) %>% 
   mutate(buff_dist = max(max_dist)) %>% 
   mutate(site_poly = st_buffer(centroid, dist = buff_dist))
 # proc.time()-start
 
 site_centroids <- test %>% 
-  dplyr::select(siteName, centroid) %>% 
+  dplyr::select(siteID, centroid) %>% 
   rename(geometry = centroid) %>% 
   st_as_sf()
 
 site_radii <- test %>% 
-  dplyr::select(siteName, site_poly) %>% 
+  dplyr::select(siteID, site_poly) %>% 
   rename(geometry = site_poly) %>% 
   st_as_sf()
 
@@ -54,8 +63,8 @@ site_radii <- test %>%
 test2 <- site %>% 
   st_make_valid() %>% 
   nest(.by = domainName) %>% 
-  mutate(max_dist = lapply(data, function(x) max(st_distance(st_centroid(x$geometry)))), 
-         centroid = lapply(data, function(x) st_centroid(st_union(x$geometry)))) %>% 
+  mutate(centroid = lapply(data, function(x) st_centroid(st_union(x)) %>% st_set_crs(4326)), 
+         max_dist = lapply(data, function(x) max_dist_to_centroid(x))) %>% 
   unnest(cols = c(max_dist, centroid)) %>% 
   mutate(buff_dist = max(max_dist)) %>% 
   mutate(dom_poly = st_buffer(centroid, dist = buff_dist))
@@ -96,18 +105,18 @@ leaflet() %>%
                    color = "darkgreen", 
                    radius = 5, 
                    group = "Site - Centroids",
-                   label = ~siteName,        # Add label for points
+                   label = ~siteID,        # Add label for points
                    labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
-                   popup = ~siteName) %>%
+                   popup = ~siteID) %>%
   
   # Add the polygon layer with a toggle option and labels
   addPolygons(data = site_radii, 
               color = "lightgreen", 
               fillOpacity = 0.5, 
               group = "Site - Radii",
-              label = ~siteName,          # Add label for polygons
+              label = ~siteID,          # Add label for polygons
               labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Keep labels visible
-              popup = ~siteName) %>%
+              popup = ~siteID) %>%
 
   # Add the polygon layer with a toggle option and labels
   addPolygons(data = dom, 
