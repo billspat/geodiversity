@@ -12,12 +12,39 @@
 # Load required libraries
 library(terra)
 library(duckdb)
+library(dplyr)
 
 # Define the directory containing the zipped folders
 zip_dir <- "D:/SRTM_gl3_v003"
 
 # List all zip files in the directory
 zip_files <- list.files(zip_dir, pattern = "\\.zip$", full.names = TRUE)
+
+latlong <- 
+  data.frame(
+    lat_num = as.numeric(substr(zip_files, nchar(zip_files)-21, nchar(zip_files)-20)),
+    lat_dir = substr(zip_files, nchar(zip_files)-22, nchar(zip_files)-22),
+    long_num = as.numeric(substr(zip_files, nchar(zip_files)-18, nchar(zip_files)-16)),
+    long_dir = substr(zip_files, nchar(zip_files)-19, nchar(zip_files)-19)
+  ) %>% 
+  mutate(
+    lat = dplyr::case_when(
+      lat_dir == "S" ~ lat_num*-1, .default = lat_num), 
+    long = dplyr::case_when(
+      long_dir == "W" ~ long_num*-1, .default = long_num), 
+    index = 1:length(long_num)
+  ) %>% 
+  dplyr::select(
+    index, 
+    lat, 
+    long) %>% 
+  filter(
+    lat > 14 & long < 60
+  )
+
+# Delete files outside US lat long
+usa_zip <- zip_files[latlong$index]
+rm(zip_files)
 
 # Function to unzip and load the .hgt file as a terra object without using a temporary directory
 load_hgt <- function(zip_file) {
@@ -47,10 +74,10 @@ load_hgt <- function(zip_file) {
 }
 
 # Apply the function to all zip files
-hgt_dfs <- lapply(zip_files[1:5], load_hgt)
+hgt_dfs <- lapply(usa_zip, load_hgt)
 
 # Set names to tile names
-names(hgt_dfs) <- substr(zip_files[1:5], nchar(zip_files[1:5])-22, nchar(zip_files[1:5])-16)
+names(hgt_dfs) <- substr(usa_zip, nchar(usa_zip)-22, nchar(usa_zip)-16)
 
 
 # Create duckdb database connection 
@@ -58,7 +85,7 @@ names(hgt_dfs) <- substr(zip_files[1:5], nchar(zip_files[1:5])-22, nchar(zip_fil
 db <- dbConnect(duckdb(), dbdir = "./data/my-db.duckdb", read_only = FALSE)
 
 # Ingest table into database
-dbWriteTable(db, substr(zip_files[2], nchar(zip_files[2])-22, nchar(zip_files[2])-16), hgt_dfs[[2]])
+dbWriteTable(db, substr(usa_zip, nchar(usa_zip)-22, nchar(usa_zip)-16), hgt_dfs[[2]])
 
 # Example queries 
 # dbGetQuery(db, "SELECT max(elevation) FROM N00E006")
