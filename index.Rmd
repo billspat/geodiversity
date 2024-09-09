@@ -185,7 +185,8 @@ leaflet() %>%
 
   # Add layer control to toggle the points and polygons
   addLayersControl(
-    overlayGroups = c("Plot", "Plot - Center", "Site", "Site - Radii", 
+    overlayGroups = c("Plot", "Plot - Center", 
+                      "Site", "Site - Radii", 
                       "Domain", "Domain - Radii"),
     options = layersControlOptions(collapsed = FALSE)
   ) %>% 
