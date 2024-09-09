@@ -15,8 +15,7 @@ library(leaflet)
 # Import NEON data 
 dom <- st_read("./data/L0/NEON_domains/NEON_Domains.shp", quiet=T)
 site <- st_read("./data/L0/NEON_sites/terrestrialSamplingBoundaries.shp", quiet=T)
-plt <- st_read("./data/L0/NEON_TOS_Plot_Points/NEON_TOS_Plot_Points.shp", quiet=T) %>% 
-  filter(subtype == "mammalGrid")
+plt <- st_read("./data/L0/NEON_TOS_Plot_Points/NEON_TOS_Plot_Points.shp", quiet=T) 
 
 # Define functions 
 max_dist_to_centroid <- function(d){
@@ -77,7 +76,7 @@ dom_radii <- test %>%
 
 ```
 
-```{r site-encompassing domain approach, eval = FALSE}
+```{r site-encompassing domain approach, eval=FALSE, echo=FALSE}
 ################################################################################
 ##### DOMAIN SCALE ##### 
 # This code generates a single domain-scale polygon for each domain. In MSU MSB 
@@ -108,7 +107,9 @@ dom_radii <- test2 %>%
 
 ```
 
-**Explanation:** This map uses the center of the smallest circle encompassing all small mammal plots within a site as the "centroid" for that site. I then compared the size of the circle for each site, found the largest one and used that as the standard radius across all sites. An arbitrary 100 km buffer was used to generate the domain-scale circle. 
+**Explanation:** This map uses the center of the smallest circle encompassing all terrestrial sampling plots within a site as the "centroid" for that site. I then compared the size of the circle for each site, found the largest one and used that as the standard radius across all sites. An arbitrary 100 km buffer was used to generate the domain-scale circle. 
+
+Note: The map scrolls much faster if you uncheck the "Plot" box. 
 
 ```{r map, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
 
