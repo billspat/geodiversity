@@ -109,7 +109,7 @@ dom_radii <- test2 %>%
 
 **Explanation:** This map uses the center of the smallest circle encompassing all terrestrial sampling plots within a site as the "centroid" for that site. I then compared the size of the circle for each site, found the largest one and used that as the standard radius across all sites. An arbitrary 100 km buffer was used to generate the domain-scale circle. 
 
-Note: The map scrolls much faster if you uncheck the "Plot" box. 
+**Note:** The map scrolls much faster if you leave the "Plot" box unchecked. 
 
 ```{r map, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
 
@@ -188,6 +188,7 @@ leaflet() %>%
     overlayGroups = c("Plot", "Plot - Center", "Site", "Site - Radii", 
                       "Domain", "Domain - Radii"),
     options = layersControlOptions(collapsed = FALSE)
-  )
+  ) %>% 
+   hideGroup("Plot")  # Initially hide the points
 
 ```
