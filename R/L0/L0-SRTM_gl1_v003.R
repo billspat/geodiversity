@@ -13,8 +13,11 @@
 library(terra)
 library(duckdb)
 
+# Load in data_dir location
+source("./R/config.R")
+
 # Define the directory containing the zipped folders
-zip_dir <- "D:/SRTM_gl3_v003"
+zip_dir <- paste0(data_dir, "SRTM_gl3_v003")
 
 # List all zip files in the directory
 zip_files <- list.files(zip_dir, pattern = "\\.zip$", full.names = TRUE)
