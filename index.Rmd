@@ -12,10 +12,15 @@ library(tidyverse)
 library(sf)
 library(leaflet)
 
+# Load in data_dir location
+source("./R/config.R")
+
 # Import NEON data 
-dom <- st_read("./data/L0/NEON_domains/NEON_Domains.shp", quiet=T)
-site <- st_read("./data/L0/NEON_sites/terrestrialSamplingBoundaries.shp", quiet=T)
-plt <- st_read("./data/L0/NEON_TOS_Plot_Points/NEON_TOS_Plot_Points.shp", quiet=T)
+dom <- st_read(paste0(data_dir, "NEON_spatial/NEON_domains/NEON_Domains.shp"), quiet=T)
+site <- st_read(paste0(data_dir, "NEON_spatial/NEON_sites/terrestrialSamplingBoundaries.shp"), quiet=T)
+plt <- st_read(paste0(data_dir, "NEON_spatial/NEON_TOS_Plot_Points/NEON_TOS_Plot_Points.shp"), quiet=T) # %>% 
+  # filter(subtype == "mammalGrid") %>% 
+  # st_write(paste0(data_dir, "NEON_spatial/NEON_small_mammal_plots/NEON_small_mammal_plots.shp"))
 
 # Define functions 
 max_dist_to_centroid <- function(d){
