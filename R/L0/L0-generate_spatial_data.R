@@ -9,8 +9,8 @@ source("./R/config.R")
 # Import NEON data 
 dom <- st_read(paste0(data_dir, "NEON_spatial/NEON_domains/NEON_Domains.shp"), quiet=T)
 site <- st_read(paste0(data_dir, "NEON_spatial/NEON_sites/terrestrialSamplingBoundaries.shp"), quiet=T)
-plt <- st_read(paste0(data_dir, "NEON_spatial/NEON_TOS_Plot_Points/NEON_TOS_Plot_Points.shp"), quiet=T) # %>% 
-# filter(subtype == "mammalGrid") %>% 
+plt <- st_read(paste0(data_dir, "NEON_spatial/NEON_TOS_Plot_Points/NEON_TOS_Plot_Points.shp"), quiet=T) %>% 
+filter(subtype == "mammalGrid") # %>%
 # st_write(paste0(data_dir, "NEON_spatial/NEON_small_mammal_plots/NEON_small_mammal_plots.shp"))
 
 # Define functions 
@@ -96,3 +96,25 @@ dom_radii <- test2 %>%
   rename(geometry = dom_poly) %>% 
   st_as_sf()
 
+################################################################################
+# Modify site data to indicate whether small mammal plots are present & add climate data siteID
+
+site_with_mamm <- site %>% st_make_valid() %>% st_intersects(plt, ., sparse=FALSE) %>% colSums()
+site$mamm_pres <- ifelse(site_with_mamm == 0, FALSE, TRUE)
+
+site$bioclim_id <- site$siteID
+site$bioclim_id[site$siteName == "Blandy Experimental Farm Additional TOS Boundary at Casey Tree"] <- "BLAN_TOS"
+site$bioclim_id[site$siteHost == "University of Alaska, Fairbanks" & site$siteID == "BONA"] <- "BONA_UA"
+site$bioclim_id[site$siteHost == "Alaska Department of Natural Resources" & site$siteID == "BONA"] <- "BONA_ADNR"
+site$bioclim_id[site$siteName == "Dakota Coteau Field School Additional TOS Boundary"] <- "DCFS_TOS"
+site$bioclim_id[site$siteName == "Harvard Forest at Quabbin Reservoir"] <- "HARV_DCR"
+site$bioclim_id[site$siteName == "Lenoir Landing Additional TOS Boundary at Choctaw National Wildlife Refuge"] <- "LENO_TOS"
+site$bioclim_id[site$siteName == "Mountain Lake Biological Station Additional TOS Boundary"] <- "MLBS_TOS"
+site$bioclim_id[site$siteName == "Northern Great Plains Research Laboratory Additional TOS Boundary"] <- "NOGP_TOS"
+site$bioclim_id[site$siteName == "Rocky Mountain National Park CASTNET Additional TOS at Roosevelt National Forest"] <- "RMNP_TOS"
+site$bioclim_id[site$siteName == "Smithsonian Environmental Research Center Additional TOS Boundary"] <- "SERC_TOS"
+site$bioclim_id[site$siteName == "Steigerwaldt Additional TOS Boundary at Chequamegon National Forest"] <- "STEI_TOS"
+site$bioclim_id[site$siteName == "North Sterling, CO Additional TOS Boundary"] <- "STER_TOS"
+site$bioclim_id[site$siteName == "Treehaven Additional TOS Boundary"] <- "TREE_TOS"
+
+st_write(site, "./data/NEON_Filed_Sites_mamm.shp")
