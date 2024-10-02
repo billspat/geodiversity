@@ -13,17 +13,15 @@
 
 # Load required libraries
 library(terra)
-library(duckdb)
+# library(duckdb)
 library(dplyr)
-library(pbapply)
+# library(pbapply)
 
 # Load in data_dir location
-source("./R/config.R")
+# source("./R/config.R")
 
 # Define the directory containing the zipped folders
 zip_dir <- paste0(data_dir, "SRTM_gl3_v003")
-
-start <- proc.time()
 
 ##### Load Functions -------------------------------------------------
 
@@ -92,19 +90,36 @@ rm(zip_files)
 
 # Create duckdb database connection 
 # to use a database file (not shared between processes)
-db <- dbConnect(duckdb(), dbdir = "./data/my-db.duckdb", read_only = FALSE)
+# db <- dbConnect(duckdb(), dbdir = "./data/my-db.duckdb", read_only = FALSE)
 
 # Initiate database table 
-dbWriteTable(db, "elevation", load_hgt(usa_zip[[1]]))
+# dbWriteTable(db, "elevation", load_hgt(usa_zip[[1]]))
 
 # Ingest all hgt files into database
-for(i in 2:length(usa_zip)){
-  if(i%%5 == 0){print(paste0(i, " of ", length(usa_zip), " files imported. (", round(i/length(usa_zip), 2), "%)"))}
+for(i in 11:length(usa_zip)){
+  start <- proc.time()
+  
+  file_path <- "/mnt/nvme/geodiversity/csvs/SRTM_"
+  
   temp <- load_hgt(usa_zip[i])
-  # write.csv(temp, paste0(data_dir, "SRTM_", temp$tile_id[1], ".csv"))
-  dbAppendTable(db, "elevation", temp)
+  
+  file_name <- paste0(file_path, temp$tile_id[1], ".csv")
+  
+  if(!exists(file_name)){
+    write.csv(temp, file_name)
+    # write.csv(temp, paste0(data_dir, "SRTM_", temp$tile_id[1], ".csv"))
+    # dbAppendTable(db, "elevation", temp)
+  }
+  
+  # if(i%%5 == 0){
+  print(paste0(i, " of ", length(usa_zip), " files unzipped (", round(i/length(usa_zip), 2), "%)"))
+  # }
+  
   rm(temp)
   gc()
+  
+  tm <- (proc.time() - start)/60
+  print(paste0("Processing time: ", round(tm[[3]], 2) , " minutes."))
 }
   
   
@@ -112,7 +127,7 @@ for(i in 2:length(usa_zip)){
 #   dbAppendTable(db, "elevation", load_hgt(x))})
 
 # Close database connection 
-duckdb::dbDisconnect(db)
+# duckdb::dbDisconnect(db)
 # Make the table spatial
 
 
