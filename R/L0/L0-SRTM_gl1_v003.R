@@ -15,10 +15,12 @@
 library(terra)
 # library(duckdb)
 library(dplyr)
+library(doParallel)
 # library(pbapply)
 
 # Load in data_dir location
 # source("./R/config.R")
+data_dir <- "/mnt/nvme/geodiversity/"
 
 # Define the directory containing the zipped folders
 zip_dir <- paste0(data_dir, "SRTM_gl3_v003")
@@ -26,7 +28,9 @@ zip_dir <- paste0(data_dir, "SRTM_gl3_v003")
 ##### Load Functions -------------------------------------------------
 
 # Function to unzip and load the .hgt file into a duckdb database
-load_hgt <- function(zip_file) {
+load_hgt_save_csv <- function(zip_file, out_path) {
+  
+  start <- proc.time()
   
   # Define the directory where the zip file will be unzipped
   unzip_dir <- sub("\\.zip$", "", zip_file)  # Remove .zip extension to create directory name
@@ -51,8 +55,22 @@ load_hgt <- function(zip_file) {
   
   # # Optionally, clean up the unzipped directory after loading
   # unlink(unzip_dir, recursive = TRUE)
+
+  out_name <- paste0(out_path, hgt_df$tile_id[1], ".csv")
   
-  return(hgt_df)
+  if(!exists(out_name)){
+    write.csv(hgt_df, out_name)
+    # write.csv(temp, paste0(data_dir, "SRTM_", temp$tile_id[1], ".csv"))
+    # dbAppendTable(db, "elevation", temp)
+  }
+  
+  # if(i%%5 == 0){
+  # print(paste0(i, " of ", length(usa_zip), " files unzipped (", round(i/length(usa_zip), 2), "%)"))
+  # }
+  print(paste0("Processed: ", out_name))
+  
+  tm <- (proc.time() - start)/60
+  print(paste0("Processing time: ", round(tm[[3]], 2) , " minutes."))
 }
 
 ##### Isolate files for data entry ---------------------------------------------
@@ -95,33 +113,31 @@ rm(zip_files)
 # Initiate database table 
 # dbWriteTable(db, "elevation", load_hgt(usa_zip[[1]]))
 
-# Ingest all hgt files into database
-for(i in 11:length(usa_zip)){
-  start <- proc.time()
-  
-  file_path <- "/mnt/nvme/geodiversity/csvs/SRTM_"
-  
-  temp <- load_hgt(usa_zip[i])
-  
-  file_name <- paste0(file_path, temp$tile_id[1], ".csv")
-  
-  if(!exists(file_name)){
-    write.csv(temp, file_name)
-    # write.csv(temp, paste0(data_dir, "SRTM_", temp$tile_id[1], ".csv"))
-    # dbAppendTable(db, "elevation", temp)
-  }
-  
-  # if(i%%5 == 0){
-  print(paste0(i, " of ", length(usa_zip), " files unzipped (", round(i/length(usa_zip), 2), "%)"))
-  # }
-  
-  rm(temp)
-  gc()
-  
-  tm <- (proc.time() - start)/60
-  print(paste0("Processing time: ", round(tm[[3]], 2) , " minutes."))
-}
-  
+
+## MSU HPCC: https://wiki.hpcc.msu.edu/display/ITH/R+workshop+tutorial#Rworkshoptutorial-Submittingparalleljobstotheclusterusing{doParallel}:singlenode,multiplecores
+# Request a single node (this uses the "multicore" functionality)
+registerDoParallel(cores=100)
+
+# create a blank list to store the results (I truncated the code before the ship-type coding, and just returned the sf of all that day's tracks so I didn't 
+#       have to debug the raster part. If we're writing all results within the function - as written here and as I think we should do - the format of the blank list won't really matter.)
+res=list()
+
+# foreach and %dopar% work together to implement the parallelization
+# note that you have to tell each core what packages you need (another reason to minimize library use), so it can pull those over
+# I'm using tidyverse since it combines dplyr and tidyr into one library (I think)
+res=foreach(i=321:length(usa_zip),.packages=c("terra", "dplyr"),
+            .errorhandling='pass',.verbose=T,.multicombine=TRUE) %dopar% 
+              load_hgt_save_csv(zip_file = usa_zip[[i]], 
+                                out_path = "/mnt/nvme/geodiversity/csvs/SRTM_")
+
+# Elapsed time and running information
+tottime <- proc.time() - start
+tottime_min <- tottime[[3]]/60 
+
+cat("Time elapsed:", tottime_min, "\n")
+cat("Currently registered backend:", getDoParName(), "\n")
+cat("Number of workers used:", getDoParWorkers(), "\n")
+
   
 # pblapply(usa_zip[2:length(usa_zip)], function(x){
 #   dbAppendTable(db, "elevation", load_hgt(x))})
