@@ -18,9 +18,9 @@ generate_sql_script <- function(csv_file_paths, output_sql_file) {
   # Start with the SQL command to create the 'elevation' table
   create_table_sql <- "
   CREATE TABLE IF NOT EXISTS elevation (
-    x NUMERIC,
-    y NUMERIC,
-    elev NUMERIC,
+    x DECIMAL(9,6), 
+    y DECIMAL(8,6), 
+    elevation VARINT, 
     tile_id VARCHAR
   );\n\n"
   
@@ -29,11 +29,9 @@ generate_sql_script <- function(csv_file_paths, output_sql_file) {
   
   # Loop over each file path in the csv_file_paths list
   for (csv_file in csv_file_paths) {
-    # Extract the base name of the file (optional: if you want to show file names without full path in SQL)
-    csv_file_base <- basename(csv_file)
-    
+
     # Generate the SQL command for each file
-    sql_command <- paste0("INSERT INTO elevation SELECT * FROM read_csv('", csv_file_base, "');\n")
+    sql_command <- paste0("INSERT INTO elevation SELECT round(x, 6), round(y, 6), elevation, tile_id FROM '", csv_file, "';\n")
     
     # Append the command to the sql_commands string
     sql_commands <- paste0(sql_commands, sql_command)
@@ -52,6 +50,8 @@ generate_sql_script <- function(csv_file_paths, output_sql_file) {
 # data_dir <- "/mnt/nvme/geodiversity/csvs"
 data_dir <- "/mnt/home/kapsarke/Documents/AIS/Data_Raw/2015/"
 csv_files <- list.files(data_dir)
+
+list.files(csv_files, pattern = )
 
 # Output SQL file path
 output_sql_file <- "output_script.sql"
