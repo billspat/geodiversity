@@ -32,7 +32,7 @@ generate_sql_scripts <- function(csv_file_paths, output_directory) {
     file_name <- basename(csv_file)
     
     # Extract the first three letters of the file name to determine the latitude degree
-    latitude_degree <- substr(file_name, 1, 3)
+    latitude_degree <- substr(file_name, 6, 8)
     
     # Generate the SQL command for each file
     sql_command <- paste0("INSERT INTO elevation SELECT round(x, 6), round(y, 6), elevation, tile_id FROM '", csv_file, "';\n")
@@ -56,12 +56,12 @@ generate_sql_scripts <- function(csv_file_paths, output_directory) {
 
 # Load in data_dir location
 # source("./R/config.R")
-# data_dir <- "/mnt/nvme/geodiversity/csvs"
-data_dir <- "/mnt/home/kapsarke/Documents/AIS/Data_Raw/2015/"
-csv_files <- list.files(data_dir, pattern = "\.csv$", full.names = TRUE)
+data_dir <- "/mnt/nvme/geodiversity/csvs"
+# data_dir <- "/mnt/home/kapsarke/Documents/AIS/Data_Raw/2015/"
+csv_files <- list.files(data_dir, pattern = ".csv", full.names = TRUE)
 
 # Output directory for SQL files
-output_directory <- "/mnt/home/kapsarke/Documents/AIS/SQL_Scripts"
+output_directory <- "/mnt/nvme/geodiversity/sql_scripts"
 
 # Generate the SQL scripts
 generate_sql_scripts(csv_files, output_directory)
