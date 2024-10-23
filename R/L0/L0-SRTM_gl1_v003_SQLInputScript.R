@@ -9,12 +9,11 @@
 # REQUIRES:         
 # NOTES:       
 
-
 # Load necessary library
 # If not installed, uncomment the next line to install it
 # install.packages("readr")
 
-generate_sql_script <- function(csv_file_paths, output_sql_file) {
+generate_sql_scripts <- function(csv_file_paths, output_directory) {
   # Start with the SQL command to create the 'elevation' table
   create_table_sql <- "
   CREATE TABLE IF NOT EXISTS elevation (
@@ -24,23 +23,33 @@ generate_sql_script <- function(csv_file_paths, output_sql_file) {
     tile_id VARCHAR
   );\n\n"
   
-  # Initialize SQL commands with the table creation statement
-  sql_commands <- create_table_sql
+  # Create a list to hold SQL commands for each latitude degree
+  sql_commands_by_latitude <- list()
   
   # Loop over each file path in the csv_file_paths list
   for (csv_file in csv_file_paths) {
-
+    # Extract the file name from the full path
+    file_name <- basename(csv_file)
+    
+    # Extract the first three letters of the file name to determine the latitude degree
+    latitude_degree <- substr(file_name, 1, 3)
+    
     # Generate the SQL command for each file
     sql_command <- paste0("INSERT INTO elevation SELECT round(x, 6), round(y, 6), elevation, tile_id FROM '", csv_file, "';\n")
     
-    # Append the command to the sql_commands string
-    sql_commands <- paste0(sql_commands, sql_command)
+    # Append the command to the corresponding latitude degree in the list
+    if (!latitude_degree %in% names(sql_commands_by_latitude)) {
+      sql_commands_by_latitude[[latitude_degree]] <- create_table_sql
+    }
+    sql_commands_by_latitude[[latitude_degree]] <- paste0(sql_commands_by_latitude[[latitude_degree]], sql_command)
   }
   
-  # Write the SQL commands to the output file
-  write(sql_commands, file = output_sql_file)
-  
-  cat("SQL script has been saved to:", output_sql_file, "\n")
+  # Write each set of SQL commands to a separate output file
+  for (latitude_degree in names(sql_commands_by_latitude)) {
+    output_sql_file <- file.path(output_directory, paste0("output_script_", latitude_degree, ".sql"))
+    write(sql_commands_by_latitude[[latitude_degree]], file = output_sql_file)
+    cat("SQL script has been saved to:", output_sql_file, "\n")
+  }
 }
 
 # Example usage:
@@ -49,12 +58,10 @@ generate_sql_script <- function(csv_file_paths, output_sql_file) {
 # source("./R/config.R")
 # data_dir <- "/mnt/nvme/geodiversity/csvs"
 data_dir <- "/mnt/home/kapsarke/Documents/AIS/Data_Raw/2015/"
-csv_files <- list.files(data_dir)
+csv_files <- list.files(data_dir, pattern = "\.csv$", full.names = TRUE)
 
-list.files(csv_files, pattern = )
+# Output directory for SQL files
+output_directory <- "/mnt/home/kapsarke/Documents/AIS/SQL_Scripts"
 
-# Output SQL file path
-output_sql_file <- "output_script.sql"
-
-# Generate the SQL script
-generate_sql_script(csv_files, output_sql_file)
+# Generate the SQL scripts
+generate_sql_scripts(csv_files, output_directory)
