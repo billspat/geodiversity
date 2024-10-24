@@ -85,16 +85,16 @@ generate_sql_scripts <- function(csv_file_paths, output_directory = ".") {
     # these are named for the prefix
     subsets <- subset_files_on_prefix(csv_file_paths, 'csv', 8)
     # convert the files names into sql inserts in the subsets
-    sql_commands_by_latitude <- lapply(subsets, insert_from_csv_sql, table_name = 'elevation')
+    sql_commands_by_subset<- lapply(subsets, insert_from_csv_sql, table_name = 'elevation')
     
     # assign the same names of the subsets to the sql so we can loop over them
-    names(sql_commands_by_latitude) <- names(subsets)
+    names(sql_commands_by_subset) <- names(subsets)
 
     # write each sql block to a file
-    files_written<- lapply( names(list_of_sql_character), 
+    files_written<- lapply( names(sql_commands_by_subset), 
             function(sql_list_name){ 
                 output_sql_file <- file.path(output_directory, paste0("output_script_", sql_list_name, ".sql"))
-                write( x = list_of_sql_character[[sql_list_name]], 
+                write( x = sql_commands_by_subsetr[[sql_list_name]], 
                     file = output_sql_file)
                 return(output_sql_file)
             }
