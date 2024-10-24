@@ -60,8 +60,11 @@ subset_files_on_prefix<- function(file_paths, file_extension, prefix_length){
         unique()
 
     # given this list of prefixes, divvy up the filelist into sublists using grep and the file 'glob' prefix*.extension
+    # the file search pattern hear assumes there is a directory inthe path, e.g. mydir/myfile.ext and if not will fail
     file_subsets <- lapply(subset_names, 
-                           function(n) {grep(glob2rx(paste0(n,"*.", file_extension)), file_paths, value = TRUE)} )
+                           function(n) {
+                            grep(glob2rx(paste0("*/",n,"*.", file_extension)), file_paths, value = TRUE)
+                            } )
     names(file_subsets)<-subset_names
     
     return(file_subsets)
@@ -83,7 +86,7 @@ generate_sql_scripts <- function(csv_file_paths, output_directory = ".") {
 
     # split the files into list of subsets base on first 8 characters, which includes Latitude
     # these are named for the prefix
-    subsets <- subset_files_on_prefix(csv_file_paths, 'csv', 8)
+    subsets <- subset_files_on_prefix(file_paths = csv_file_paths, file_extension = 'csv', prefix_length = 8)
     # convert the files names into sql inserts in the subsets
     sql_commands_by_subset<- lapply(subsets, insert_from_csv_sql, table_name = 'elevation')
     
