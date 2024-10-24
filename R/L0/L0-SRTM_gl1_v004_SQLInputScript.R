@@ -94,7 +94,7 @@ generate_sql_scripts <- function(csv_file_paths, output_directory = ".") {
     files_written<- lapply( names(sql_commands_by_subset), 
             function(sql_list_name){ 
                 output_sql_file <- file.path(output_directory, paste0("output_script_", sql_list_name, ".sql"))
-                write( x = sql_commands_by_subsetr[[sql_list_name]], 
+                write( x = sql_commands_by_subset[[sql_list_name]], 
                     file = output_sql_file)
                 return(output_sql_file)
             }
